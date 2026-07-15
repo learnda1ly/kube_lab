@@ -1,0 +1,39 @@
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/*.tfvars
+!terraform/*.tfvars.example
+terraform/crash.log
+terraform/crash.*.log
+terraform/override.tf
+terraform/override.tf.json
+terraform/*_override.tf
+terraform/*_override.tf.json
+terraform/.terraform.tfstate.lock.info
+
+# Generated inventory / kubeconfig
+ansible/inventory/hosts.proxmox.yml
+ansible/files/kubeconfig
+kubeconfig
+*.kubeconfig
+
+# Secrets / local env
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+id_rsa*
+!id_rsa*.pub
+
+# Ansible
+ansible/*.retry
+.ansible/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~

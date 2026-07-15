@@ -1,0 +1,8 @@
+---
+k3s_version: "v1.31.4+k3s1"
+k3s_install_url: "https://get.k3s.io"
+k3s_server_args: "--write-kubeconfig-mode 644"
+k3s_agent_args: ""
+k3s_token_path: /var/lib/rancher/k3s/server/node-token
+k3s_kubeconfig_path: /etc/rancher/k3s/k3s.yaml
+kubeconfig_local_path: "{{ playbook_dir }}/../../kubeconfig"

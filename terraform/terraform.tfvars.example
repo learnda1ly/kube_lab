@@ -1,0 +1,54 @@
+proxmox_endpoint     = "https://proxmox.example.local:8006/"
+# Leave null to use PROXMOX_VE_API_TOKEN from the environment
+proxmox_api_token    = null
+proxmox_insecure     = true
+proxmox_ssh_username = "root"
+proxmox_node         = "pve"
+
+# VMID of an Ubuntu cloud-init template on the node
+template_id        = 9000
+vm_datastore       = "local-lvm"
+snippet_datastore  = "local"
+bridge             = "vmbr0"
+# vlan_id          = 10
+
+ssh_user = "ubuntu"
+ssh_public_keys = [
+  "ssh-ed25519 AAAA... your-key",
+]
+
+gateway     = "192.168.1.1"
+dns_servers = ["192.168.1.1", "1.1.1.1"]
+
+cluster_name = "homelab"
+
+control_plane = {
+  name    = "k3s-cp-01"
+  vmid    = 200
+  cores   = 2
+  memory  = 4096
+  disk_gb = 40
+  ip      = "192.168.1.20"
+  cidr    = 24
+}
+
+workers = [
+  {
+    name    = "k3s-wk-01"
+    vmid    = 201
+    cores   = 2
+    memory  = 4096
+    disk_gb = 40
+    ip      = "192.168.1.21"
+    cidr    = 24
+  },
+  {
+    name    = "k3s-wk-02"
+    vmid    = 202
+    cores   = 2
+    memory  = 4096
+    disk_gb = 40
+    ip      = "192.168.1.22"
+    cidr    = 24
+  }
+]

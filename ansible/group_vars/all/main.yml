@@ -1,0 +1,23 @@
+---
+# Non-secret cluster defaults. Override per-environment as needed.
+k3s_version: "v1.31.4+k3s1"
+k3s_channel: "stable"
+
+# Extra server args (disable traefik if you prefer an external ingress later)
+k3s_server_args: >-
+  --disable traefik
+  --write-kubeconfig-mode 644
+
+k3s_agent_args: ""
+
+# Where kubeconfig is written on the Ansible controller
+kubeconfig_local_path: "{{ playbook_dir }}/../../kubeconfig"
+
+timezone: "America/Chicago"
+common_packages:
+  - curl
+  - ca-certificates
+  - open-iscsi
+  - nfs-common
+  - jq
+  - qemu-guest-agent

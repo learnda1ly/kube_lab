@@ -1,0 +1,20 @@
+---
+- name: Verify k3s cluster health
+  hosts: control_plane
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Wait for nodes to be Ready
+      ansible.builtin.command: kubectl get nodes --no-headers
+      register: nodes
+      changed_when: false
+      retries: 30
+      delay: 10
+      until: >
+        nodes.stdout_lines | length >= (groups['k3s_cluster'] | length)
+        and nodes.stdout_lines | select('search', '\sReady\s') | list | length
+        == (groups['k3s_cluster'] | length)
+
+    - name: Show nodes
+      ansible.builtin.debug:
+        msg: "{{ nodes.stdout_lines }}"
