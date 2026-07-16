@@ -15,6 +15,7 @@ ansible site.yml →  base OS hardening bits + k3s cluster
 | `ansible/` | OS prep + k3s install/join |
 | `scripts/rebuild.sh` | End-to-end recreate |
 | `docs/proxmox-template.md` | One-time cloud-init template setup |
+| `docs/openshift-on-proxmox.md` | Design notes: OpenShift/OKD on this stack (incl. air-gap) |
 
 ## Prerequisites
 
