@@ -1,0 +1,13 @@
+# Example PVC against the nfs StorageClass (for smoke tests).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-smoke
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs
+  resources:
+    requests:
+      storage: 1Gi

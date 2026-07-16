@@ -8,7 +8,7 @@ proxmox_node         = "pve"
 # VMID of an Ubuntu cloud-init template on the node
 template_id        = 9000
 vm_datastore       = "local-lvm"
-snippet_datastore  = "local"
+snippet_datastore  = "local-lvm"
 bridge             = "vmbr0"
 # vlan_id          = 10
 
@@ -52,3 +52,17 @@ workers = [
     cidr    = 24
   }
 ]
+
+# Dedicated NFS VM for persistent volumes (not a k3s node).
+nfs_server = {
+  name    = "nfs-01"
+  vmid    = 210
+  cores   = 2
+  memory  = 2048
+  disk_gb = 200
+  ip      = "192.168.1.30"
+  cidr    = 24
+}
+
+nfs_export_path = "/srv/nfs/k3s"
+nfs_client_cidr = "192.168.1.0/24"

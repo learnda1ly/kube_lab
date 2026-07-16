@@ -1,0 +1,10 @@
+---
+# Shared play: NFS StorageClass via nfs-subdir-external-provisioner.
+# Used by site.yml (full bring-up) and storage.yml (day-2 re-apply).
+- name: Install NFS StorageClass provisioner
+  hosts: control_plane
+  become: true
+  serial: 1
+  roles:
+    - role: nfs_provisioner
+      when: groups['nfs'] is defined and (groups['nfs'] | length > 0)

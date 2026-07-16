@@ -1,0 +1,6 @@
+---
+# Path/CIDR come from Terraform → inventory (nfs group vars).
+# Options/packages are role-local and rarely need overrides.
+nfs_export_options: "rw,sync,no_subtree_check,no_root_squash"
+nfs_packages:
+  - nfs-kernel-server

@@ -18,3 +18,33 @@
     - name: Show nodes
       ansible.builtin.debug:
         msg: "{{ nodes.stdout_lines }}"
+
+    - name: Resolve NFS server address
+      ansible.builtin.set_fact:
+        nfs_server_ip: "{{ hostvars[groups['nfs'][0]].ansible_host }}"
+        nfs_export_path: "{{ hostvars[groups['nfs'][0]].nfs_export_path }}"
+      when: groups['nfs'] is defined and (groups['nfs'] | length > 0)
+
+    - name: Verify NFS export is visible from control plane
+      ansible.builtin.command: showmount -e {{ nfs_server_ip }}
+      register: nfs_exports
+      changed_when: false
+      when: nfs_server_ip is defined
+
+    - name: Show NFS exports
+      ansible.builtin.debug:
+        msg: "{{ nfs_exports.stdout_lines }}"
+      when: nfs_exports is defined and nfs_exports.stdout_lines is defined
+
+    - name: Assert expected NFS path is exported
+      ansible.builtin.assert:
+        that:
+          - nfs_export_path in nfs_exports.stdout
+        fail_msg: "Expected export {{ nfs_export_path }} not found on {{ nfs_server_ip }}"
+      when: nfs_exports is defined and nfs_exports.stdout is defined
+
+    - name: Verify NFS StorageClass exists
+      ansible.builtin.command: kubectl get storageclass nfs
+      register: nfs_sc
+      changed_when: false
+      when: groups['nfs'] is defined and (groups['nfs'] | length > 0)

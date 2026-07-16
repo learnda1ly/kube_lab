@@ -1,0 +1,18 @@
+---
+# Inventory-adjacent group_vars (required so Ansible loads them with
+# inventory/hosts.proxmox.yml). Canonical k3s install args live in
+# roles/k3s/defaults — override here only when needed.
+#
+# Traefik is disabled via roles/k3s/defaults (k3s_server_args).
+
+timezone: "America/Chicago"
+common_packages:
+  - curl
+  - ca-certificates
+  - open-iscsi
+  - nfs-common
+  - jq
+  - qemu-guest-agent
+
+# Where kubeconfig is written on the Ansible controller
+kubeconfig_local_path: "{{ playbook_dir }}/../../kubeconfig"

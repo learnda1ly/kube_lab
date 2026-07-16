@@ -1,0 +1,7 @@
+---
+nfs_provisioner_namespace: nfs-provisioner
+nfs_storage_class_name: nfs
+nfs_storage_class_default: false
+nfs_storage_class_reclaim_policy: Retain
+nfs_helm_chart_repo: https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner
+nfs_helm_chart_name: nfs-subdir-external-provisioner

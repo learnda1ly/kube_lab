@@ -12,9 +12,8 @@ terraform/*_override.tf
 terraform/*_override.tf.json
 terraform/.terraform.tfstate.lock.info
 
-# Generated inventory / kubeconfig
+# Generated inventory / kubeconfig (kubeconfig is written to repo root by the k3s role)
 ansible/inventory/hosts.proxmox.yml
-ansible/files/kubeconfig
 kubeconfig
 *.kubeconfig
 

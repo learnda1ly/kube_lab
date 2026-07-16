@@ -1,0 +1,24 @@
+---
+- name: Resolve NFS server address from inventory
+  ansible.builtin.set_fact:
+    nfs_server_ip: "{{ hostvars[groups['nfs'][0]].ansible_host }}"
+    nfs_export_path: "{{ hostvars[groups['nfs'][0]].nfs_export_path }}"
+
+- name: Render nfs-subdir-external-provisioner HelmChart
+  ansible.builtin.template:
+    src: helmchart.yaml.j2
+    dest: /tmp/nfs-provisioner-helmchart.yaml
+    mode: "0644"
+
+- name: Apply nfs-subdir-external-provisioner HelmChart
+  ansible.builtin.command: kubectl apply -f /tmp/nfs-provisioner-helmchart.yaml
+  register: nfs_helm_apply
+  changed_when: "'created' in nfs_helm_apply.stdout or 'configured' in nfs_helm_apply.stdout"
+
+- name: Wait for NFS StorageClass
+  ansible.builtin.command: kubectl get storageclass {{ nfs_storage_class_name }}
+  register: nfs_sc
+  changed_when: false
+  retries: 30
+  delay: 10
+  until: nfs_sc.rc == 0

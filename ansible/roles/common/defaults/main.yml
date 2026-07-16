@@ -1,0 +1,4 @@
+---
+# When true (default), configure br_netfilter / sysctl / swap for Kubernetes.
+# Set false on non-k8s hosts (e.g. NFS) that only need packages + guest agent.
+common_prepare_kubernetes: true

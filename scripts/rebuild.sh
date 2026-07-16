@@ -29,6 +29,8 @@ require_cmd terraform
 require_cmd ansible-playbook
 require_cmd ssh
 
+export ANSIBLE_CONFIG="$ANSIBLE_DIR/ansible.cfg"
+
 if [[ ! -f "$TF_DIR/terraform.tfvars" ]]; then
   echo "Create $TF_DIR/terraform.tfvars from terraform.tfvars.example first." >&2
   exit 1

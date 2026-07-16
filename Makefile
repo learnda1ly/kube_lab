@@ -1,34 +1,44 @@
-.PHONY: help init plan apply ansible verify rebuild destroy
+.PHONY: help init plan apply ansible storage verify rebuild destroy
 
 ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 TF := terraform -chdir=$(ROOT)/terraform
 INV := $(ROOT)/ansible/inventory/hosts.proxmox.yml
+ANSIBLE := ANSIBLE_CONFIG=$(ROOT)/ansible/ansible.cfg ansible-playbook -i $(INV)
+
+# Source gitignored .env when present (PROXMOX_VE_API_TOKEN, ANSIBLE_*).
+define with_env
+bash -c 'set -a; [ -f "$(ROOT)/.env" ] && . "$(ROOT)/.env"; set +a; $(1)'
+endef
 
 help:
 	@echo "Targets:"
 	@echo "  make init      - terraform init + ansible galaxy collections"
-	@echo "  make plan      - terraform plan"
-	@echo "  make apply     - terraform apply (creates VMs + inventory)"
+	@echo "  make plan      - terraform plan (sources .env if present)"
+	@echo "  make apply     - terraform apply (sources .env if present)"
 	@echo "  make ansible   - run site playbook against generated inventory"
-	@echo "  make verify    - kubectl readiness check via Ansible"
+	@echo "  make storage   - (re)install NFS StorageClass provisioner only"
+	@echo "  make verify    - cluster + NFS export readiness check"
 	@echo "  make rebuild   - full recreate (terraform apply + ansible + verify)"
 	@echo "  make destroy   - terraform destroy (prompted)"
 
 init:
-	$(TF) init -upgrade
+	$(call with_env,$(TF) init -upgrade)
 	ansible-galaxy collection install -r $(ROOT)/ansible/requirements.yml
 
 plan:
-	$(TF) plan
+	$(call with_env,$(TF) plan)
 
 apply:
-	$(TF) apply
+	$(call with_env,$(TF) apply)
 
 ansible:
-	ansible-playbook -i $(INV) $(ROOT)/ansible/playbooks/site.yml
+	$(call with_env,$(ANSIBLE) $(ROOT)/ansible/playbooks/site.yml)
+
+storage:
+	$(call with_env,$(ANSIBLE) $(ROOT)/ansible/playbooks/storage.yml)
 
 verify:
-	ansible-playbook -i $(INV) $(ROOT)/ansible/playbooks/verify.yml
+	$(call with_env,$(ANSIBLE) $(ROOT)/ansible/playbooks/verify.yml)
 
 rebuild:
 	$(ROOT)/scripts/rebuild.sh

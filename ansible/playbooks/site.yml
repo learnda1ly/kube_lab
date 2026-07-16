@@ -1,10 +1,19 @@
 ---
-# Full cluster bring-up (base OS + k3s).
-- name: Prepare all cluster nodes
+# Full cluster bring-up (base OS + NFS + k3s + NFS StorageClass).
+- name: Prepare all k3s cluster nodes
   hosts: k3s_cluster
   become: true
   roles:
     - role: common
+
+- name: Configure NFS server
+  hosts: nfs
+  become: true
+  roles:
+    - role: common
+      vars:
+        common_prepare_kubernetes: false
+    - role: nfs_server
 
 - name: Bootstrap k3s control plane
   hosts: control_plane
@@ -18,3 +27,5 @@
   become: true
   roles:
     - role: k3s
+
+- import_playbook: nfs_provisioner.yml

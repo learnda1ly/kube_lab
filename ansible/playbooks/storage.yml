@@ -1,0 +1,3 @@
+---
+# Day-2 / re-apply NFS StorageClass only (cluster + NFS VM must already exist).
+- import_playbook: nfs_provisioner.yml

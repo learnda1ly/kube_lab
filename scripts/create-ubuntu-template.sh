@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# Build Ubuntu 24.04 cloud-init template (default VMID 9000) on Proxmox.
+# Build Ubuntu 24.04 cloud-init template (default VMID 9000) on a Proxmox host.
 #
-# From your Mac (will prompt for sudo password on the Proxmox host):
-#   scp -i ~/.ssh/squinlan_ed25519 scripts/create-ubuntu-template.sh squinlan@192.168.1.228:/tmp/
-#   ssh -t -i ~/.ssh/squinlan_ed25519 squinlan@192.168.1.228 'sudo bash /tmp/create-ubuntu-template.sh'
+# Copy to the Proxmox node and run as root, for example:
+#   scp scripts/create-ubuntu-template.sh user@proxmox:/tmp/
+#   ssh -t user@proxmox 'sudo bash /tmp/create-ubuntu-template.sh'
+#
+# See docs/proxmox-template.md.
 set -euo pipefail
 
 VMID="${VMID:-9000}"

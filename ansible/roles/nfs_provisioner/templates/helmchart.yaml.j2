@@ -1,0 +1,23 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ nfs_provisioner_namespace }}
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: nfs-subdir-external-provisioner
+  namespace: kube-system
+spec:
+  chart: {{ nfs_helm_chart_name }}
+  repo: {{ nfs_helm_chart_repo }}
+  targetNamespace: {{ nfs_provisioner_namespace }}
+  createNamespace: true
+  set:
+    nfs.server: "{{ nfs_server_ip }}"
+    nfs.path: "{{ nfs_export_path }}"
+    storageClass.name: "{{ nfs_storage_class_name }}"
+    storageClass.defaultClass: "{{ nfs_storage_class_default | string | lower }}"
+    storageClass.reclaimPolicy: "{{ nfs_storage_class_reclaim_policy }}"
+    storageClass.accessModes: ReadWriteMany

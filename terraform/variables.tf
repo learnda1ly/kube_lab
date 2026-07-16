@@ -39,9 +39,9 @@ variable "vm_datastore" {
 }
 
 variable "snippet_datastore" {
-  description = "Datastore that allows Snippets (for cloud-init user-data if used)"
+  description = "Datastore for the cloud-init drive (must support content-type images, e.g. local-lvm)"
   type        = string
-  default     = "local"
+  default     = "local-lvm"
 }
 
 variable "bridge" {
@@ -137,4 +137,38 @@ variable "cluster_name" {
   description = "Logical cluster name used in tags / Ansible inventory"
   type        = string
   default     = "homelab"
+}
+
+variable "nfs_server" {
+  description = "Dedicated NFS VM for cluster persistent volumes (Splunk, etc.)"
+  type = object({
+    name    = string
+    vmid    = number
+    cores   = number
+    memory  = number
+    disk_gb = number
+    ip      = string
+    cidr    = number
+  })
+  default = {
+    name    = "nfs-01"
+    vmid    = 210
+    cores   = 2
+    memory  = 2048
+    disk_gb = 200
+    ip      = "192.168.1.30"
+    cidr    = 24
+  }
+}
+
+variable "nfs_export_path" {
+  description = "Filesystem path exported by the NFS VM"
+  type        = string
+  default     = "/srv/nfs/k3s"
+}
+
+variable "nfs_client_cidr" {
+  description = "CIDR allowed to mount the NFS export (lab subnet)"
+  type        = string
+  default     = "192.168.1.0/24"
 }
