@@ -1,0 +1,3 @@
+---
+# Applied on k3s nodes so they can reach lab_cidr (NFS) via the Proxmox LAN IP.
+# lab_cidr and proxmox_lan_ip come from Terraform-generated inventory (k3s_cluster vars).

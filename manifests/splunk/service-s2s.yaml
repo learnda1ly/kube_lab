@@ -1,0 +1,20 @@
+# k3s ServiceLB (klipper) proxies host :9997 on every node → Splunk S2S.
+# Point Universal Forwarders at <any-node-ip>:9997
+apiVersion: v1
+kind: Service
+metadata:
+  name: splunk-s2s
+  namespace: splunk
+  labels:
+    app.kubernetes.io/name: splunk
+    app.kubernetes.io/component: s2s
+spec:
+  type: LoadBalancer
+  allocateLoadBalancerNodePorts: false
+  selector:
+    app.kubernetes.io/name: splunk
+  ports:
+    - name: s2s
+      port: 9997
+      targetPort: s2s
+      protocol: TCP

@@ -1,0 +1,9 @@
+---
+# Splunk Universal Forwarder on RHEL 9 — install / upgrade for lab testing.
+# Does not touch k3s inventory or playbooks.
+
+- name: Splunk Universal Forwarder on RHEL 9
+  hosts: rhel9_uf
+  become: true
+  roles:
+    - role: splunk_uf

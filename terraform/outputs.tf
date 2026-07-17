@@ -13,8 +13,18 @@ output "worker_ips" {
 }
 
 output "nfs_server_ip" {
-  description = "NFS server IPv4 address"
+  description = "NFS server IPv4 address (on lab_network)"
   value       = var.nfs_server.ip
+}
+
+output "lab_cidr" {
+  description = "Lab / storage CIDR behind vmbr1"
+  value       = var.lab_cidr
+}
+
+output "lab_bridge" {
+  description = "Proxmox bridge for non-k3s VMs"
+  value       = var.lab_network.bridge
 }
 
 output "nfs_export_path" {

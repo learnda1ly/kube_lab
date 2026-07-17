@@ -1,0 +1,6 @@
+# Managed once by Ansible (force=false). Edits after first deploy are preserved across UF upgrades.
+[tcpout]
+defaultGroup = lab_indexers
+
+[tcpout:lab_indexers]
+server = {{ splunk_uf_indexer }}

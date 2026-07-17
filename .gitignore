@@ -12,8 +12,23 @@ terraform/*_override.tf
 terraform/*_override.tf.json
 terraform/.terraform.tfstate.lock.info
 
+# RHEL 9 UF lab (separate Terraform root; never shares state with k3s)
+terraform/rhel9/.terraform/
+terraform/rhel9/*.tfstate
+terraform/rhel9/*.tfstate.*
+terraform/rhel9/*.tfvars
+!terraform/rhel9/*.tfvars.example
+terraform/rhel9/crash.log
+terraform/rhel9/crash.*.log
+terraform/rhel9/override.tf
+terraform/rhel9/override.tf.json
+terraform/rhel9/*_override.tf
+terraform/rhel9/*_override.tf.json
+terraform/rhel9/.terraform.tfstate.lock.info
+
 # Generated inventory / kubeconfig (kubeconfig is written to repo root by the k3s role)
 ansible/inventory/hosts.proxmox.yml
+ansible/inventory/hosts.rhel9.yml
 kubeconfig
 *.kubeconfig
 
@@ -21,6 +36,7 @@ kubeconfig
 .env
 .env.*
 !.env.example
+manifests/splunk/secret.yaml
 *.pem
 *.key
 id_rsa*

@@ -1,0 +1,146 @@
+---
+- name: Assert supported package source
+  ansible.builtin.assert:
+    that:
+      - splunk_uf_package_source in ["repo", "local"]
+    fail_msg: "splunk_uf_package_source must be 'repo' or 'local'"
+
+- name: Check whether Splunk Universal Forwarder is installed
+  ansible.builtin.command:
+    cmd: rpm -q splunkforwarder
+  register: splunk_uf_rpm_query
+  changed_when: false
+  failed_when: false
+
+- name: Set installed flag
+  ansible.builtin.set_fact:
+    splunk_uf_was_installed: "{{ splunk_uf_rpm_query.rc == 0 }}"
+
+- name: Configure custom Splunk UF dnf repository
+  when: splunk_uf_package_source == "repo"
+  ansible.builtin.yum_repository:
+    name: "{{ splunk_uf_repo_name }}"
+    description: Splunk Universal Forwarder (lab / Satellite simulation)
+    baseurl: "{{ splunk_uf_repo_baseurl }}"
+    enabled: "{{ splunk_uf_repo_enabled }}"
+    gpgcheck: "{{ splunk_uf_repo_gpgcheck }}"
+    file: "{{ splunk_uf_repo_name }}"
+
+- name: Stage local Splunk UF RPM on target
+  when: splunk_uf_package_source == "local"
+  block:
+    - name: Require local RPM path
+      ansible.builtin.assert:
+        that:
+          - splunk_uf_rpm_src | length > 0
+        fail_msg: "Set splunk_uf_rpm_src when splunk_uf_package_source=local"
+
+    - name: Copy RPM to /var/tmp
+      ansible.builtin.copy:
+        src: "{{ splunk_uf_rpm_src }}"
+        dest: "/var/tmp/{{ splunk_uf_rpm_src | basename }}"
+        mode: "0644"
+      register: splunk_uf_rpm_copy
+
+- name: Stop Splunk UF before package change (if already installed)
+  when: splunk_uf_was_installed | bool
+  ansible.builtin.command:
+    cmd: "{{ splunk_uf_home }}/bin/splunk stop"
+  register: splunk_uf_stop
+  changed_when: splunk_uf_stop.rc == 0
+  failed_when: false
+
+- name: Install or upgrade Splunk Universal Forwarder from repo
+  when: splunk_uf_package_source == "repo"
+  ansible.builtin.dnf:
+    name: "{{ (splunk_uf_version | length > 0) | ternary('splunkforwarder-' + splunk_uf_version, 'splunkforwarder') }}"
+    state: "{{ (splunk_uf_version | length > 0) | ternary('present', 'latest') }}"
+    allow_downgrade: true
+  register: splunk_uf_pkg
+
+- name: Install or upgrade Splunk Universal Forwarder from local RPM
+  when: splunk_uf_package_source == "local"
+  ansible.builtin.dnf:
+    name: "/var/tmp/{{ splunk_uf_rpm_src | basename }}"
+    state: present
+    disable_gpg_check: true
+  register: splunk_uf_pkg_local
+
+- name: Remember whether the package changed
+  ansible.builtin.set_fact:
+    splunk_uf_package_changed: >-
+      {{
+        (splunk_uf_pkg is defined and splunk_uf_pkg is changed)
+        or (splunk_uf_pkg_local is defined and splunk_uf_pkg_local is changed)
+      }}
+
+- name: Ensure local config directories exist
+  when: splunk_uf_manage_local_config | bool
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ splunk_uf_user }}"
+    group: "{{ splunk_uf_group }}"
+    mode: "0750"
+  loop:
+    - "{{ splunk_uf_home }}/etc/system/local"
+
+- name: Deploy outputs.conf only if missing (never overwrite)
+  when: splunk_uf_manage_local_config | bool
+  ansible.builtin.template:
+    src: outputs.conf.j2
+    dest: "{{ splunk_uf_home }}/etc/system/local/outputs.conf"
+    owner: "{{ splunk_uf_user }}"
+    group: "{{ splunk_uf_group }}"
+    mode: "0640"
+    force: false
+
+- name: Deploy deploymentclient.conf only if missing (never overwrite)
+  when: splunk_uf_manage_local_config | bool
+  ansible.builtin.template:
+    src: deploymentclient.conf.j2
+    dest: "{{ splunk_uf_home }}/etc/system/local/deploymentclient.conf"
+    owner: "{{ splunk_uf_user }}"
+    group: "{{ splunk_uf_group }}"
+    mode: "0640"
+    force: false
+
+- name: Accept license and start Splunk UF after package change
+  when: splunk_uf_package_changed | bool
+  ansible.builtin.command:
+    cmd: "{{ splunk_uf_home }}/bin/splunk start {{ splunk_uf_start_args }}"
+  register: splunk_uf_start
+  changed_when: true
+
+- name: Ensure Splunk UF is running (idempotent re-run)
+  when: not (splunk_uf_package_changed | bool)
+  ansible.builtin.command:
+    cmd: "{{ splunk_uf_home }}/bin/splunk status"
+  register: splunk_uf_status
+  changed_when: false
+  failed_when: false
+
+- name: Start Splunk UF if stopped
+  when:
+    - not (splunk_uf_package_changed | bool)
+    - splunk_uf_status.rc != 0
+  ansible.builtin.command:
+    cmd: "{{ splunk_uf_home }}/bin/splunk start {{ splunk_uf_start_args }}"
+  changed_when: true
+
+- name: Enable Splunk UF at boot (idempotent)
+  ansible.builtin.command:
+    cmd: "{{ splunk_uf_home }}/bin/splunk enable boot-start -user {{ splunk_uf_user }} --accept-license --answer-yes --no-prompt"
+  register: splunk_uf_boot
+  changed_when: "'enabled' in (splunk_uf_boot.stdout | lower) or splunk_uf_boot.rc == 0"
+  failed_when: false
+
+- name: Report installed package version
+  ansible.builtin.command:
+    cmd: rpm -q splunkforwarder
+  register: splunk_uf_version_out
+  changed_when: false
+
+- name: Show Splunk UF version
+  ansible.builtin.debug:
+    msg: "{{ splunk_uf_version_out.stdout }}"

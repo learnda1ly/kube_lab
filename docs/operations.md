@@ -38,27 +38,35 @@ ssh -i "$ANSIBLE_PRIVATE_KEY_FILE" "${ANSIBLE_USER}@192.168.1.20" true
 
 ## Networking expectations
 
-Defaults assume a flat LAN (edit in tfvars):
+Two networks (see [lab-network.md](lab-network.md)):
+
+| Network | Bridge | CIDR (default) | Gateway | VMs |
+|---------|--------|----------------|---------|-----|
+| Cluster LAN | `vmbr0` | `192.168.1.0/24` | LAN router (e.g. `.254`) | k3s nodes |
+| Lab / storage | `vmbr1` | `10.10.10.0/24` | `10.10.10.1` (Proxmox) | `nfs-01` (+ future non-k3s) |
 
 | Item | Default |
 |------|---------|
-| Gateway | `192.168.1.1` |
-| Node CIDR | `/24` |
-| DNS | from `dns_servers` in tfvars |
-| Bridge | `vmbr0` (optional `vlan_id`) |
-| NFS client allowlist | `nfs_client_cidr` (must include all k3s node IPs) |
+| k3s DNS | from `dns_servers` in tfvars |
+| Lab DNS | from `lab_network.dns_servers` |
+| NFS client allowlist | `nfs_client_cidr` = **k3s LAN** (must include all k3s node IPs) |
+| Route k3s → lab | Ansible `lab_routes` via `proxmox_lan_ip` |
+| Operator → lab | Static route on laptop to `lab_cidr` via `proxmox_lan_ip` |
 
-Ports that must be open between lab machines (typical home LAN = all open):
+One-time underlay: run `scripts/setup-lab-bridge.sh` on Proxmox (creates `vmbr1`, IP forward, MASQUERADE).
+
+Ports that must be open between lab machines:
 
 | From → to | Port / proto | Why |
 |-----------|--------------|-----|
-| Your laptop → guests | TCP 22 | Ansible / SSH |
+| Your laptop → k3s guests | TCP 22 | Ansible / SSH |
+| Your laptop → nfs-01 (via lab route) | TCP 22 | Ansible / SSH |
 | Your laptop → control plane | TCP 6443 | kubectl via rewritten kubeconfig |
 | Workers → control plane | TCP 6443 | k3s agent |
-| k3s nodes → NFS VM | TCP/UDP 2049 (+ related NFS ports) | mounts / showmount |
+| k3s nodes → NFS VM (via PVE) | TCP/UDP 2049 (+ related NFS ports) | mounts / showmount |
 | Your laptop → Proxmox | TCP 8006 | Terraform API |
 
-Guests need outbound HTTPS to pull the k3s install script and (via the HelmChart controller) the provisioner chart.
+Guests need outbound HTTPS to pull the k3s install script and (via the HelmChart controller) the provisioner chart. Lab VMs reach the internet via Proxmox MASQUERADE.
 
 ## Standard day-2 commands
 
@@ -169,6 +177,7 @@ Requires `terraform.tfvars` and a working `.env` token + SSH access to guests.
 | `scripts/rebuild.sh` | End-to-end bring-up (auto-approve apply) |
 | `scripts/destroy.sh` | Tear-down with confirmation |
 | `scripts/create-ubuntu-template.sh` | Run **on the Proxmox host** once; see [proxmox-template.md](proxmox-template.md) |
+| `scripts/setup-lab-bridge.sh` | Run **on the Proxmox host** once; creates `vmbr1` NAT; see [lab-network.md](lab-network.md) |
 
 ## Verify coverage vs smoke test
 
@@ -190,7 +199,8 @@ Requires `terraform.tfvars` and a working `.env` token + SSH access to guests.
 | Ansible unreachable | Wrong `ANSIBLE_PRIVATE_KEY_FILE` / user | Match tfvars public key; test bare SSH |
 | Traefik still installed | Old k3s install without `--disable traefik` | Reinstall k3s (create-once); confirm role defaults |
 | Workers: missing `k3s_cluster_token` | CP play did not run first | Run full `site.yml`, not workers-only on a fresh cluster |
-| `showmount` fails | NFS role/CIDR/firewall | `make ansible` with nfs in inventory; ensure `nfs_client_cidr` covers nodes |
+| `showmount` fails | NFS role/CIDR/firewall/route | `make ansible`; ensure `nfs_client_cidr` covers k3s LAN; ping NFS from CP; check laptop/PVE routes ([lab-network.md](lab-network.md)) |
+| Cannot SSH to `10.10.10.x` | Missing laptop route or `vmbr1` | Add route via Proxmox LAN IP; re-run `setup-lab-bridge.sh` |
 | StorageClass never appears | HelmChart / wrong NFS IP | `kubectl -n kube-system get helmchart`; `make storage`; check inventory NFS IP |
 | PVC Pending | Provisioner or mount | `kubectl -n nfs-provisioner get pods`; mount from a node; check Retain leftovers |
 | kubectl connection refused / wrong host | Stale kubeconfig | Re-run ansible (fetch + rewrite) or fix server URL to CP `ansible_host:6443` |

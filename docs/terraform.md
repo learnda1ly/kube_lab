@@ -77,11 +77,12 @@ Writes a file on the machine running Terraform: the Ansible inventory. No cloud 
 
 These define the schema of the lab:
 
-- **Proxmox placement** — node name, datastores, bridge, optional VLAN
+- **Proxmox placement** — node name, datastores, cluster `bridge` / optional VLAN
 - **Identity** — SSH user + public keys for cloud-init
-- **Network** — gateway, DNS
+- **Cluster network** — gateway, DNS for k3s on the LAN
+- **Lab network** — `lab_network` (bridge/gateway/DNS for non-k3s), `lab_cidr`, `proxmox_lan_ip`
 - **Cluster shape** — one `control_plane` object + a list of `workers`
-- **NFS VM** — separate object + export path / client CIDR for Ansible vars
+- **NFS VM** — separate object on `lab_network` + export path / client CIDR for Ansible vars
 
 Each node object looks like:
 
@@ -97,7 +98,7 @@ Each node object looks like:
 }
 ```
 
-Defaults in `variables.tf` match the README topology (`.20` CP, `.21`/`.22` workers, `.30` NFS). Override what you need in `terraform.tfvars`.
+Defaults in `variables.tf` match the README topology (`.20` CP, `.21`/`.22` workers, NFS at `10.10.10.30` on `vmbr1`). Override what you need in `terraform.tfvars`. Create the lab bridge once with [lab-network.md](lab-network.md) / `scripts/setup-lab-bridge.sh` before applying NFS on `vmbr1`.
 
 ### Secrets
 
@@ -180,11 +181,12 @@ Per VM:
 `proxmox_virtual_environment_vm.nfs` is almost the same shape, but:
 
 - Uses `var.nfs_server.*` instead of the node list
+- Attaches to **`lab_network`** (`vmbr1` by default), not the cluster `bridge`
 - Tags: `cluster_name` + `"nfs"` (no k3s role)
 - Typically larger disk (default 200 GiB) and less RAM
 - `agent { enabled = false }` — same PVE 9 hang workaround as k3s nodes
 
-Terraform still does **not** install `nfs-kernel-server`. It only creates the empty Ubuntu VM and puts NFS path/CIDR into inventory vars for Ansible. Details: [nfs-storage.md](nfs-storage.md).
+Terraform still does **not** install `nfs-kernel-server`. It only creates the empty Ubuntu VM and puts NFS path/CIDR into inventory vars for Ansible. Details: [nfs-storage.md](nfs-storage.md) · [lab-network.md](lab-network.md).
 
 ### Generate Ansible inventory (the glue)
 
@@ -215,10 +217,13 @@ all:
             k3s-wk-02:
               ansible_host: 192.168.1.22
               ansible_user: ubuntu
+      vars:
+        lab_cidr: 10.10.10.0/24
+        proxmox_lan_ip: 192.168.1.228
     nfs:
       hosts:
         nfs-01:
-          ansible_host: 192.168.1.30
+          ansible_host: 10.10.10.30
           ansible_user: ubuntu
       vars:
         nfs_export_path: /srv/nfs/k3s
@@ -235,7 +240,9 @@ After apply, `terraform output` exposes:
 |--------|---------|
 | `control_plane_ips` | Control-plane IPv4 addresses |
 | `worker_ips` | Worker IPv4 addresses |
-| `nfs_server_ip` | NFS server IPv4 |
+| `nfs_server_ip` | NFS server IPv4 (on lab network) |
+| `lab_cidr` | Lab / storage CIDR |
+| `lab_bridge` | Proxmox bridge for non-k3s VMs |
 | `nfs_export_path` | Export path on the NFS VM |
 | `ansible_inventory_path` | Path to generated inventory |
 | `vm_ids` | Map of name → Proxmox VMID (k3s nodes + NFS) |

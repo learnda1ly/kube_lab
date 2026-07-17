@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: splunk
+  namespace: splunk
+  labels:
+    app.kubernetes.io/name: splunk
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: splunk
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      nodePort: 30080
+    - name: hec
+      port: 8088
+      targetPort: hec
+    - name: management
+      port: 8089
+      targetPort: management
+    # S2S ingest is exposed on host :9997 via LoadBalancer service-s2s.yaml

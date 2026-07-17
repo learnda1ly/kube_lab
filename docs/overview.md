@@ -29,7 +29,7 @@ terraform apply
 |-------|------|--------------|
 | **Terraform** | Proxmox VMs, static IPs, SSH keys via cloud-init, generated inventory | Packages, k3s, NFS export, Kubernetes objects |
 | **Ansible** | OS prep, NFS server, k3s install/join, StorageClass provisioner, kubeconfig fetch | Creating VMs or assigning IPs |
-| **Manifests** | PVC smoke test only (`manifests/storage/`) | Provisioner install (Ansible owns that) |
+| **Manifests** | PVC smoke (`manifests/storage/`) + apps (e.g. `manifests/splunk/`) | Provisioner install (Ansible owns that) |
 | **Scripts / Make** | Orchestration: init, plan, apply, rebuild, destroy | Cluster semantics |
 
 ## Repository map
@@ -40,9 +40,11 @@ terraform apply
 | `ansible/` | Playbooks, roles, inventory `group_vars`, `ansible.cfg`, Galaxy requirements |
 | `ansible/inventory/hosts.proxmox.yml` | **Generated** by Terraform — never hand-edit |
 | `manifests/storage/` | PVC smoke test only (see README there) |
+| `manifests/splunk/` | Standalone Splunk on NFS StorageClass |
 | `scripts/rebuild.sh` | Full recreate: apply → SSH wait → site → verify |
 | `scripts/destroy.sh` | Destroy VMs; remove kubeconfig + inventory |
 | `scripts/create-ubuntu-template.sh` | One-time Proxmox template helper |
+| `scripts/setup-lab-bridge.sh` | One-time Proxmox `vmbr1` NAT lab bridge |
 | `docs/` | Layer guides and this overview |
 | `.env` | API token + Ansible SSH settings; sourced by Makefile and scripts |
 | `kubeconfig` | Fetched to repo root by the k3s role (gitignored) |
@@ -51,11 +53,14 @@ terraform apply
 
 | Doc | Topic |
 |-----|--------|
+| [../instructions.md](../instructions.md) | **Agent brief** — all addressed requirements, pitfalls, improvement bar |
 | [terraform.md](terraform.md) | Providers, variables, VM resources, inventory glue |
 | [ansible.md](ansible.md) | Inventory groups, playbooks, roles, variables, verify |
 | [operations.md](operations.md) | Day-2: scale, upgrade, destroy, networking, troubleshooting |
 | [proxmox-template.md](proxmox-template.md) | One-time Ubuntu cloud-init template + API token |
 | [nfs-storage.md](nfs-storage.md) | NFS VM, export, StorageClass, smoke PVC |
+| [lab-network.md](lab-network.md) | Proxmox `vmbr1` NAT lab net for non-k3s / NFS |
+| [zero-trust.md](zero-trust.md) | DoD ZT pillar recommendations for this lab |
 | [TODO.md](TODO.md) | Known overcomplications and cleanup ideas |
 
 ## Prerequisites
@@ -110,15 +115,15 @@ kubectl get storageclass
 
 ## Default cluster shape
 
-| Role | Name (default) | IP (default) |
-|------|----------------|--------------|
-| Control plane | `k3s-cp-01` | `192.168.1.20` |
-| Workers | `k3s-wk-01`, `k3s-wk-02` | `.21`, `.22` |
-| NFS | `nfs-01` | `192.168.1.30` |
+| Role | Name (default) | IP (default) | Network |
+|------|----------------|--------------|---------|
+| Control plane | `k3s-cp-01` | `192.168.1.20` | LAN `vmbr0` |
+| Workers | `k3s-wk-01`, `k3s-wk-02` | `.21`, `.22` | LAN `vmbr0` |
+| NFS | `nfs-01` | `10.10.10.30` | lab `vmbr1` (NAT) |
 
 - k3s with Traefik disabled (`--disable traefik`)
 - StorageClass `nfs` via nfs-subdir-external-provisioner (not the cluster default; `local-path` remains)
-- NFS export `/srv/nfs/k3s` limited to the lab CIDR
+- NFS export `/srv/nfs/k3s` limited to the **k3s LAN** CIDR (`nfs_client_cidr`); k3s nodes reach NFS via a static route through Proxmox ([lab-network.md](lab-network.md))
 
 ## Secrets (do not commit)
 

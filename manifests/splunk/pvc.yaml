@@ -1,0 +1,33 @@
+# Persistent volumes for Splunk on StorageClass "nfs" (Retain reclaim).
+# etc = config / apps; var = indexes / logs / run state.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: splunk-etc
+  namespace: splunk
+  labels:
+    app.kubernetes.io/name: splunk
+    app.kubernetes.io/component: etc
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: splunk-var
+  namespace: splunk
+  labels:
+    app.kubernetes.io/name: splunk
+    app.kubernetes.io/component: var
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs
+  resources:
+    requests:
+      storage: 50Gi

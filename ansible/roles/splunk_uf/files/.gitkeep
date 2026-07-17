@@ -1,0 +1,3 @@
+# Place Splunk Universal Forwarder RPMs here when using splunk_uf_package_source=local
+# Example: splunkforwarder-9.3.2-d8bb32809498.x86_64.rpm
+# Then set splunk_uf_rpm_src to that filename (role files/) or an absolute path.

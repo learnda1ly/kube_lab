@@ -133,9 +133,9 @@ resource "proxmox_virtual_environment_vm" "nfs" {
   }
 
   network_device {
-    bridge  = var.bridge
+    bridge  = var.lab_network.bridge
     model   = "virtio"
-    vlan_id = var.vlan_id
+    vlan_id = var.lab_network.vlan_id
   }
 
   initialization {
@@ -144,12 +144,12 @@ resource "proxmox_virtual_environment_vm" "nfs" {
     ip_config {
       ipv4 {
         address = "${var.nfs_server.ip}/${var.nfs_server.cidr}"
-        gateway = var.gateway
+        gateway = var.lab_network.gateway
       }
     }
 
     dns {
-      servers = var.dns_servers
+      servers = var.lab_network.dns_servers
     }
 
     user_account {
@@ -187,6 +187,10 @@ resource "local_file" "ansible_inventory" {
                 } if n.role == "worker"
               }
             }
+          }
+          vars = {
+            lab_cidr        = var.lab_cidr
+            proxmox_lan_ip  = var.proxmox_lan_ip
           }
         }
         nfs = {

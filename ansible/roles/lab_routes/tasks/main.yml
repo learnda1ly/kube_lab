@@ -1,0 +1,42 @@
+---
+- name: Assert lab route vars from inventory
+  ansible.builtin.assert:
+    that:
+      - lab_cidr is defined and (lab_cidr | length > 0)
+      - proxmox_lan_ip is defined and (proxmox_lan_ip | length > 0)
+    fail_msg: >-
+      lab_cidr and proxmox_lan_ip must come from Terraform-generated
+      k3s_cluster inventory vars (run make apply after enabling lab_network).
+
+- name: Install netplan static route to lab network
+  ansible.builtin.copy:
+    dest: /etc/netplan/60-kube-lab-route.yaml
+    mode: "0600"
+    content: |
+      # Managed by kube_lab ansible role lab_routes — route to NFS / lab VMs via Proxmox
+      network:
+        version: 2
+        ethernets:
+          labroute0:
+            match:
+              name: "en*"
+            routes:
+              - to: {{ lab_cidr }}
+                via: {{ proxmox_lan_ip }}
+  register: lab_route_netplan
+
+- name: Apply netplan
+  ansible.builtin.command: netplan apply
+  when: lab_route_netplan is changed
+  changed_when: true
+
+- name: Ensure lab route is present now
+  ansible.builtin.command:
+    argv:
+      - ip
+      - route
+      - replace
+      - "{{ lab_cidr }}"
+      - via
+      - "{{ proxmox_lan_ip }}"
+  changed_when: false

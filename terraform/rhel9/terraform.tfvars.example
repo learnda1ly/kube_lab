@@ -1,0 +1,57 @@
+proxmox_endpoint     = "https://proxmox.example.local:8006/"
+# Leave null to use PROXMOX_VE_API_TOKEN from the environment
+proxmox_api_token    = null
+proxmox_insecure     = true
+# Match k3s tfvars — bpg/proxmox SSHes to the hypervisor via your agent
+proxmox_ssh_username = "squinlan"
+proxmox_node         = "pve"
+
+# VMID of a RHEL 9 cloud-init template (NOT Ubuntu 9000) — scripts/create-rhel9-template.sh
+template_id       = 9001
+vm_datastore      = "local-lvm"
+# Cloud-init drive needs content-type "images" (name is historical; not Snippets)
+snippet_datastore = "local-lvm"
+bridge            = "vmbr0"
+# vlan_id         = 10
+
+# Official RHEL cloud images use cloud-user
+ssh_user = "cloud-user"
+ssh_public_keys = [
+  "ssh-ed25519 AAAA... your-key",
+]
+
+gateway     = "192.168.1.254"
+dns_servers = ["192.168.1.254", "1.1.1.1"]
+
+lab_name = "rhel9-uf"
+
+# VMIDs/IPs clear of k3s (100–102), nfs (210), Ubuntu template (9000)
+hosts = [
+  {
+    name    = "rhel9-uf-01"
+    vmid    = 240
+    cores   = 2
+    memory  = 2048
+    disk_gb = 40
+    ip      = "192.168.1.40"
+    cidr    = 24
+  },
+  {
+    name    = "rhel9-uf-02"
+    vmid    = 241
+    cores   = 2
+    memory  = 2048
+    disk_gb = 40
+    ip      = "192.168.1.41"
+    cidr    = 24
+  },
+  {
+    name    = "rhel9-uf-03"
+    vmid    = 242
+    cores   = 2
+    memory  = 2048
+    disk_gb = 40
+    ip      = "192.168.1.42"
+    cidr    = 24
+  }
+]

@@ -1,0 +1,19 @@
+# k3s ServiceLB proxies host :8089 → Splunk management (deployment server phone-home).
+apiVersion: v1
+kind: Service
+metadata:
+  name: splunk-mgmt
+  namespace: splunk
+  labels:
+    app.kubernetes.io/name: splunk
+    app.kubernetes.io/component: mgmt
+spec:
+  type: LoadBalancer
+  allocateLoadBalancerNodePorts: false
+  selector:
+    app.kubernetes.io/name: splunk
+  ports:
+    - name: management
+      port: 8089
+      targetPort: management
+      protocol: TCP

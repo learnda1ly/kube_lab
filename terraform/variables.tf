@@ -45,13 +45,13 @@ variable "snippet_datastore" {
 }
 
 variable "bridge" {
-  description = "Linux bridge for VM NICs"
+  description = "Linux bridge for k3s VM NICs (cluster / LAN)"
   type        = string
   default     = "vmbr0"
 }
 
 variable "vlan_id" {
-  description = "Optional VLAN tag for VM NICs"
+  description = "Optional VLAN tag for k3s VM NICs"
   type        = number
   default     = null
 }
@@ -68,14 +68,42 @@ variable "ssh_public_keys" {
 }
 
 variable "dns_servers" {
-  description = "DNS servers for cloud-init network config"
+  description = "DNS servers for k3s cloud-init network config"
   type        = list(string)
   default     = ["1.1.1.1", "8.8.8.8"]
 }
 
 variable "gateway" {
-  description = "Default IPv4 gateway for cluster nodes"
+  description = "Default IPv4 gateway for k3s cluster nodes"
   type        = string
+}
+
+variable "lab_network" {
+  description = "Proxmox NAT / lab bridge for non-k3s VMs (nfs-01). Create underlay with scripts/setup-lab-bridge.sh first."
+  type = object({
+    bridge      = string
+    vlan_id     = optional(number)
+    gateway     = string
+    dns_servers = list(string)
+  })
+  default = {
+    bridge      = "vmbr1"
+    vlan_id     = null
+    gateway     = "10.10.10.1"
+    dns_servers = ["10.10.10.1", "1.1.1.1"]
+  }
+}
+
+variable "lab_cidr" {
+  description = "Lab / storage CIDR (vmbr1). Written to inventory for k3s static routes."
+  type        = string
+  default     = "10.10.10.0/24"
+}
+
+variable "proxmox_lan_ip" {
+  description = "Proxmox host IPv4 on the LAN (vmbr0). Next-hop for k3s → lab_cidr routes."
+  type        = string
+  default     = "192.168.1.228"
 }
 
 variable "control_plane" {
@@ -140,7 +168,7 @@ variable "cluster_name" {
 }
 
 variable "nfs_server" {
-  description = "Dedicated NFS VM for cluster persistent volumes (Splunk, etc.)"
+  description = "Dedicated NFS VM on lab_network for cluster persistent volumes (Splunk, etc.)"
   type = object({
     name    = string
     vmid    = number
@@ -156,7 +184,7 @@ variable "nfs_server" {
     cores   = 2
     memory  = 2048
     disk_gb = 200
-    ip      = "192.168.1.30"
+    ip      = "10.10.10.30"
     cidr    = 24
   }
 }
@@ -168,7 +196,7 @@ variable "nfs_export_path" {
 }
 
 variable "nfs_client_cidr" {
-  description = "CIDR allowed to mount the NFS export (lab subnet)"
+  description = "CIDR allowed to mount the NFS export (k3s cluster LAN, not lab_cidr)"
   type        = string
   default     = "192.168.1.0/24"
 }

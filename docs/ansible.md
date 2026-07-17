@@ -14,7 +14,7 @@ Ansible is **layer 2**. It assumes:
 
 It then:
 
-1. Prepares the OS (`common`)
+1. Prepares the OS (`common`) and routes k3s → lab net (`lab_routes`)
 2. Exports NFS on `nfs-01` (`nfs_server`)
 3. Installs k3s server on the control plane, agents on workers (`k3s`)
 4. Installs the NFS StorageClass via a k3s `HelmChart` (`nfs_provisioner`)
@@ -26,7 +26,7 @@ terraform apply
        │
        ▼
 site.yml
-  1. common          → k3s_cluster
+  1. common+lab_routes → k3s_cluster
   2. common+nfs_server → nfs
   3. k3s (server)    → control_plane
   4. k3s (agent)     → workers
@@ -50,6 +50,7 @@ ansible/
 │   └── verify.yml           # readiness checks
 └── roles/
     ├── common/              # OS prep (k8s sysctls optional via flag)
+    ├── lab_routes/          # k3s → lab_cidr via Proxmox (NFS reachability)
     ├── k3s/                 # server + agent install (canonical Traefik-off args)
     ├── nfs_server/          # nfs-kernel-server + /etc/exports
     └── nfs_provisioner/     # HelmChart → StorageClass "nfs"
@@ -107,7 +108,10 @@ Makefile always passes `-i $(INV)` and `ANSIBLE_CONFIG=...` so runs from the rep
 all
 ├── k3s_cluster
 │   ├── control_plane     # e.g. k3s-cp-01
-│   └── workers           # e.g. k3s-wk-01, k3s-wk-02
+│   ├── workers           # e.g. k3s-wk-01, k3s-wk-02
+│   └── vars:
+│         lab_cidr
+│         proxmox_lan_ip
 └── nfs                   # sibling of k3s_cluster, not inside it
     ├── hosts: nfs-01
     └── vars:
@@ -119,7 +123,7 @@ all
 
 | Field | Example | Used for |
 |-------|---------|----------|
-| `ansible_host` | `192.168.1.20` | SSH target; k3s API URL; NFS server IP |
+| `ansible_host` | `192.168.1.20` / `10.10.10.30` | SSH target; k3s API URL; NFS server IP |
 | `ansible_user` | `ubuntu` | SSH user (must match tfvars `ssh_user`) |
 
 ### Assumptions baked into playbooks
@@ -128,6 +132,7 @@ all
 - **NFS is optional for provisioner** — if `groups['nfs']` is empty, `nfs_provisioner` is skipped
 - **NFS hosts are not k3s nodes** — they never get the `k3s` role
 - **Play order matters** — control plane must run before workers so `k3s_cluster_token` exists
+- **k3s → lab route** — `lab_routes` on `k3s_cluster` needs `lab_cidr` + `proxmox_lan_ip`
 
 ### Example generated inventory
 
@@ -149,10 +154,13 @@ all:
             k3s-wk-02:
               ansible_host: 192.168.1.22
               ansible_user: ubuntu
+      vars:
+        lab_cidr: 10.10.10.0/24
+        proxmox_lan_ip: 192.168.1.228
     nfs:
       hosts:
         nfs-01:
-          ansible_host: 192.168.1.30
+          ansible_host: 10.10.10.30
           ansible_user: ubuntu
       vars:
         nfs_export_path: /srv/nfs/k3s
@@ -171,7 +179,7 @@ Canonical **k3s** install args (`--disable traefik`, version) live in `roles/k3s
 
 | Order | Play | Hosts | Roles |
 |-------|------|-------|-------|
-| 1 | Prepare all k3s cluster nodes | `k3s_cluster` | `common` |
+| 1 | Prepare all k3s cluster nodes | `k3s_cluster` | `common`, `lab_routes` |
 | 2 | Configure NFS server | `nfs` | `common` (`common_prepare_kubernetes: false`), `nfs_server` |
 | 3 | Bootstrap k3s control plane | `control_plane` | `k3s` (`serial: 1`) |
 | 4 | Join k3s workers | `workers` | `k3s` |
@@ -231,6 +239,23 @@ NFS play sets `common_prepare_kubernetes: false`, so the NFS VM only gets packag
 `curl`, `ca-certificates`, `open-iscsi`, `nfs-common`, `jq`, `qemu-guest-agent`
 
 `nfs-common` on the control plane is what lets `verify.yml` run `showmount`.
+
+---
+
+### `lab_routes` — reach NFS on vmbr1
+
+**Applied to:** `k3s_cluster` only (after `common`).
+
+**Required from inventory** (`k3s_cluster` vars from Terraform): `lab_cidr`, `proxmox_lan_ip`.
+
+**Steps:**
+
+1. Assert those vars are set
+2. Write `/etc/netplan/60-kube-lab-route.yaml` (match `en*`, route `lab_cidr` via `proxmox_lan_ip`)
+3. `netplan apply` when changed
+4. `ip route replace` so the route is live immediately
+
+Without this, PVC mounts and `showmount` from k3s to `10.10.10.30` fail even when PVE forwarding is correct. See [lab-network.md](lab-network.md).
 
 ---
 

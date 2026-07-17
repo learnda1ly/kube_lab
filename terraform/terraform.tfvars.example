@@ -17,8 +17,18 @@ ssh_public_keys = [
   "ssh-ed25519 AAAA... your-key",
 ]
 
+# k3s cluster LAN (vmbr0)
 gateway     = "192.168.1.1"
 dns_servers = ["192.168.1.1", "1.1.1.1"]
+
+# Non-k3s / NFS lab net (create with scripts/setup-lab-bridge.sh first)
+lab_network = {
+  bridge      = "vmbr1"
+  gateway     = "10.10.10.1"
+  dns_servers = ["10.10.10.1", "1.1.1.1"]
+}
+lab_cidr       = "10.10.10.0/24"
+proxmox_lan_ip = "192.168.1.228"
 
 cluster_name = "homelab"
 
@@ -53,16 +63,17 @@ workers = [
   }
 ]
 
-# Dedicated NFS VM for persistent volumes (not a k3s node).
+# Dedicated NFS VM on lab_network (not a k3s node).
 nfs_server = {
   name    = "nfs-01"
   vmid    = 210
   cores   = 2
   memory  = 2048
   disk_gb = 200
-  ip      = "192.168.1.30"
+  ip      = "10.10.10.30"
   cidr    = 24
 }
 
 nfs_export_path = "/srv/nfs/k3s"
+# Allow k3s nodes on the LAN to mount (not lab_cidr)
 nfs_client_cidr = "192.168.1.0/24"

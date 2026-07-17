@@ -35,26 +35,35 @@ Canonical provisioner install is **Ansible only** (`make ansible` / `make storag
 | Setting | Value |
 |---------|-------|
 | VM | `nfs-01` (VMID `210`) |
-| IP | `192.168.1.30/24` |
+| Network | lab `vmbr1` ([lab-network.md](lab-network.md)) |
+| IP | `10.10.10.30/24` (gateway `10.10.10.1` on Proxmox) |
 | Size | 2 vCPU, 2 GiB RAM, 200 GiB disk |
-| Export | `/srv/nfs/k3s` → `192.168.1.0/24` |
+| Export | `/srv/nfs/k3s` → k3s LAN `192.168.1.0/24` (`nfs_client_cidr`) |
 | Options | `rw,sync,no_subtree_check,no_root_squash` |
 | StorageClass | `nfs` (not cluster default; `local-path` remains) |
 | Reclaim | `Retain` |
 
 `no_root_squash` lets the provisioner (root in-cluster) create PVC subdirectories.
-The export is limited to the lab CIDR (`nfs_client_cidr` must include every k3s node).
+The export is limited to the **k3s LAN** CIDR (`nfs_client_cidr` must include every k3s node). k3s nodes reach NFS via a static route through Proxmox (`lab_routes` role).
 
 ## Configure tfvars
 
 ```hcl
+lab_network = {
+  bridge      = "vmbr1"
+  gateway     = "10.10.10.1"
+  dns_servers = ["10.10.10.1", "1.1.1.1"]
+}
+lab_cidr       = "10.10.10.0/24"
+proxmox_lan_ip = "192.168.1.228"
+
 nfs_server = {
   name    = "nfs-01"
   vmid    = 210
   cores   = 2
   memory  = 2048
   disk_gb = 200
-  ip      = "192.168.1.30"
+  ip      = "10.10.10.30"
   cidr    = 24
 }
 
@@ -133,8 +142,9 @@ More detail: [operations.md](operations.md).
 
 ## Splunk (example consumer)
 
-There is no Splunk chart in this repo yet. When you add it:
+Standalone Splunk manifests live under [`manifests/splunk/`](../manifests/splunk/):
 
-- Point PVCs at `storageClassName: nfs` for persistent paths (e.g. `/opt/splunk/etc`, `/opt/splunk/var`)
-- Size the NFS disk and worker RAM for the workload
+- PVCs `splunk-etc` / `splunk-var` use `storageClassName: nfs` for `/opt/splunk/etc` and `/opt/splunk/var`
+- Deploy: copy `secret.yaml.example` → `secret.yaml`, set password, then `kubectl apply` per that README
+- Size the NFS disk and worker RAM for the workload (Deployment requests 2 GiB RAM)
 - Remember `Retain`: deleting Splunk PVCs leaves data on `nfs-01` until you remove those directories

@@ -1,0 +1,30 @@
+---
+splunk_uf_home: /opt/splunkforwarder
+splunk_uf_user: splunkfwd
+splunk_uf_group: splunkfwd
+
+# Package: pin a version for install tests, or leave empty for "latest" from the repo.
+# Example: "9.3.2-d8bb32809498"
+splunk_uf_version: ""
+
+# How to get the RPM — pick one:
+#   repo   — dnf install from a custom .repo (Satellite-like)
+#   local  — copy RPM from ansible/roles/splunk_uf/files/ (or splunk_uf_rpm_src)
+splunk_uf_package_source: repo
+
+# Custom dnf repo (simulate Satellite delivering the UF package)
+splunk_uf_repo_name: splunk-uf-lab
+splunk_uf_repo_baseurl: "http://192.168.1.228/repos/splunk-uf/"
+splunk_uf_repo_enabled: true
+splunk_uf_repo_gpgcheck: false
+
+# When package_source=local: path on the control machine, or basename under files/
+splunk_uf_rpm_src: ""
+
+# Create-only local configs (never overwrite existing — preserves upgrade + DS apps)
+splunk_uf_manage_local_config: true
+splunk_uf_indexer: "192.168.1.20:9997"
+splunk_uf_deployment_server: "192.168.1.20:8089"
+
+# Always pass these after install/upgrade — license acceptance is not sticky across upgrades
+splunk_uf_start_args: "--accept-license --answer-yes --no-prompt"

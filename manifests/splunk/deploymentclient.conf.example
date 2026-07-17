@@ -1,0 +1,7 @@
+# Mac UF phones home to the lab Splunk deployment server (mgmt :8089).
+[deployment-client]
+clientName = Stephens-MacBook-Pro-2
+phoneHomeIntervalInSecs = 60
+
+[target-broker:deploymentServer]
+targetUri = 192.168.1.20:8089
