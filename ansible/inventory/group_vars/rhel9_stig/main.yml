@@ -1,0 +1,20 @@
+---
+# STIG PoC defaults for hosts in inventory group rhel9_stig.
+# Override per-environment; keep secrets out of git.
+
+rhel9_stig_enabled: true
+rhel9_stig_profile: xccdf_org.ssgproject.content_profile_stig
+rhel9_stig_remediate: true
+
+# Full STIG expects FIPS; leave false until you accept reboot + app impact.
+rhel9_stig_enable_fips: false
+rhel9_stig_reboot_on_fips: false
+
+# Audit / maintenance
+rhel9_stig_audit_enabled: true
+rhel9_stig_audit_timer_enabled: true
+rhel9_stig_remediate_on_audit: false
+rhel9_stig_fetch_reports: true
+
+# Waiver list (SSG rule IDs). Empty by default — document any skips with ISSO.
+rhel9_stig_oscap_skip_rules: []

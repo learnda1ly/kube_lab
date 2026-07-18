@@ -1,0 +1,106 @@
+---
+- name: Assert RHEL 9 family
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == "RedHat"
+      - ansible_distribution_major_version | int == 9
+    fail_msg: "rhel9_stig targets Red Hat Enterprise Linux 9 only (got {{ ansible_distribution }} {{ ansible_distribution_version }})."
+
+- name: Skip when STIG role disabled
+  ansible.builtin.meta: end_host
+  when: not rhel9_stig_enabled | bool
+
+- name: Install STIG / OpenSCAP packages
+  ansible.builtin.dnf:
+    name: "{{ rhel9_stig_packages }}"
+    state: present
+
+- name: Ensure compliance results directory exists
+  ansible.builtin.file:
+    path: "{{ rhel9_stig_results_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Deploy DoD issue.net banner
+  ansible.builtin.copy:
+    dest: /etc/issue.net
+    content: "{{ rhel9_stig_banner_text }}"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Deploy DoD /etc/issue banner
+  ansible.builtin.copy:
+    dest: /etc/issue
+    content: "{{ rhel9_stig_banner_text }}"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Check whether FIPS mode is already enabled
+  ansible.builtin.command: fips-mode-setup --check
+  register: rhel9_stig_fips_check
+  changed_when: false
+  failed_when: false
+  when: rhel9_stig_enable_fips | bool
+
+- name: Enable FIPS mode (requires reboot to take effect)
+  ansible.builtin.command: fips-mode-setup --enable
+  register: rhel9_stig_fips_enable
+  when:
+    - rhel9_stig_enable_fips | bool
+    - rhel9_stig_fips_check.rc is defined
+    - "'FIPS mode is enabled' not in (rhel9_stig_fips_check.stdout | default(''))"
+  notify: Reboot for FIPS
+
+- name: Build oscap skip-rule arguments
+  ansible.builtin.set_fact:
+    rhel9_stig_skip_args: >-
+      {{
+        rhel9_stig_oscap_skip_rules
+        | map('regex_replace', '^(.*)$', '--skip-rule \1')
+        | list
+        | join(' ')
+      }}
+
+- name: Assert SCAP datastream is present
+  ansible.builtin.stat:
+    path: "{{ rhel9_stig_datastream }}"
+  register: rhel9_stig_ds
+  failed_when: not rhel9_stig_ds.stat.exists
+
+- name: Remediate DISA STIG profile with OpenSCAP
+  ansible.builtin.command: >-
+    oscap xccdf eval
+    --profile {{ rhel9_stig_profile }}
+    {{ rhel9_stig_skip_args }}
+    --remediate
+    --results {{ rhel9_stig_results_xml }}
+    --report {{ rhel9_stig_results_html }}
+    {{ rhel9_stig_datastream }}
+  register: rhel9_stig_remediate_run
+  changed_when: true
+  failed_when: rhel9_stig_remediate_run.rc not in [0, 2]
+  when: rhel9_stig_remediate | bool
+  # rc 2 = some rules failed/errored after remediation (common on first pass)
+
+- name: Ensure firewalld is enabled and running
+  ansible.builtin.service:
+    name: firewalld
+    state: started
+    enabled: true
+  when: rhel9_stig_ensure_firewalld | bool
+
+- name: Ensure auditd is enabled and running
+  ansible.builtin.service:
+    name: auditd
+    state: started
+    enabled: true
+
+- name: Ensure chronyd is enabled and running
+  ansible.builtin.service:
+    name: chronyd
+    state: started
+    enabled: true

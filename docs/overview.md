@@ -60,6 +60,8 @@ terraform apply
 | [proxmox-template.md](proxmox-template.md) | One-time Ubuntu cloud-init template + API token |
 | [nfs-storage.md](nfs-storage.md) | NFS VM, export, StorageClass, smoke PVC |
 | [lab-network.md](lab-network.md) | Proxmox `vmbr1` NAT lab net for non-k3s / NFS |
+| [rhel9-uf.md](rhel9-uf.md) | Separate RHEL 9 VMs for Splunk UF testing |
+| [rhel9-stig.md](rhel9-stig.md) | RHEL 9 STIG research + IdM IaC PoC |
 | [zero-trust.md](zero-trust.md) | DoD ZT pillar recommendations for this lab |
 | [TODO.md](TODO.md) | Known overcomplications and cleanup ideas |
 

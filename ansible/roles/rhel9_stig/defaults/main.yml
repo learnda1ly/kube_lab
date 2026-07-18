@@ -1,0 +1,48 @@
+---
+# DISA STIG for RHEL 9 via OpenSCAP / scap-security-guide.
+# Profile content is versioned with the RHEL minor; pin intentionally.
+
+rhel9_stig_enabled: true
+
+# SCAP profile — headless server default. Use stig_gui only on Workstation/GUI.
+rhel9_stig_profile: xccdf_org.ssgproject.content_profile_stig
+
+rhel9_stig_datastream: /usr/share/xml/scap/ssg/content/ssg-rhel9-ds.xml
+
+rhel9_stig_packages:
+  - openscap-scanner
+  - scap-security-guide
+  - aide
+  - audit
+  - chrony
+  - firewalld
+  - crypto-policies-scripts
+
+# Apply OpenSCAP remediation (changes the host). Set false for scan-prep only.
+rhel9_stig_remediate: true
+
+# FIPS is required for full STIG alignment; enable only when you accept reboot.
+rhel9_stig_enable_fips: false
+rhel9_stig_reboot_on_fips: false
+
+# Optional rule skips (waiver IDs from oscap / SSG). Prefer empty in lab.
+# Example: ["xccdf_org.ssgproject.content_rule_ somehow_password"]
+rhel9_stig_oscap_skip_rules: []
+
+rhel9_stig_results_dir: /var/log/compliance
+rhel9_stig_results_xml: "{{ rhel9_stig_results_dir }}/stig-remediate-results.xml"
+rhel9_stig_results_html: "{{ rhel9_stig_results_dir }}/stig-remediate-report.html"
+
+# Ensure firewalld is running after remediation (common CAT II dependency).
+rhel9_stig_ensure_firewalld: true
+
+# DoD banner text (RHEL-09-211020 family). Override for org-specific notice.
+rhel9_stig_banner_text: |
+  You are accessing a U.S. Government (USG) Information System (IS) that is
+  provided for USG-authorized use only. By using this IS (which includes any
+  device attached to this IS), you consent to the following conditions:
+  - The USG routinely intercepts and monitors communications on this IS.
+  - At any time, the USG may inspect and seize data stored on this IS.
+  - Communications using, or data stored on, this IS are not private.
+  - This IS includes security measures (e.g., authentication and access controls)
+    to protect USG interests -- not for your personal benefit or privacy.

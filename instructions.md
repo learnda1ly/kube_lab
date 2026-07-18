@@ -274,6 +274,8 @@ Do not treat these as missing bugs unless the user asks for them:
 | Full Zero Trust controls | Roadmap only |
 | Auto-grow NFS filesystem after disk resize | Manual in guest |
 | Ansible uninstall on destroy | Destroy removes VMs + local files only |
+| Dedicated IdM server VMs in Terraform | PoC uses external/future IdM; clients + manage playbooks only |
+| Claimed 100% STIG / ATO | OpenSCAP alignment + evidence; FIPS/partitioning often still required |
 
 ---
 
@@ -349,6 +351,7 @@ Deep dives:
 - `docs/nfs-storage.md` — storage  
 - `docs/proxmox-template.md` — template  
 - `docs/zero-trust.md` — hardening roadmap  
+- `docs/rhel9-uf.md` / `docs/rhel9-stig.md` — RHEL 9 UF lab + STIG/IdM PoC  
 - `docs/TODO.md` — deferred cleanups  
 
 ---
@@ -396,6 +399,17 @@ Improve **without** violating §2 / §12. Highest-value directions:
 12. k3s audit logging + central log sink  
 13. PSS + default-deny NetworkPolicies for app namespaces  
 14. Tighten NFS (`0777` / `no_root_squash` / cleartext) as provisioner design allows  
+15. Advance RHEL 9 STIG + IdM PoC (`docs/rhel9-stig.md`): IdM server TF, FIPS-at-image, Satellite/Insights evidence  
+
+### RHEL 9 STIG / IdM PoC (addressed scaffold)
+
+- [x] Research doc: applicable STIGs (`docs/rhel9-stig.md`) — RHEL 9 V2R8 primary; no IdM-specific STIG  
+- [x] Roles: `rhel9_stig`, `rhel9_stig_audit`, `idm_client`, `idm_manage`  
+- [x] Playbooks + Make targets: `rhel9-stig`, `rhel9-stig-harden`, `rhel9-stig-audit`, `rhel9-idm-client`, `rhel9-idm-manage`  
+- [x] Inventory groups `rhel9_stig` / `idm_clients` from `terraform/rhel9`  
+- [x] Galaxy: `freeipa.ansible_freeipa` for IdM identity/HBAC modules  
+- [ ] IdM server/replica Terraform root (next increment)  
+- [ ] Image Builder / Kickstart pre-hardened golden image (next increment)  
 
 ### D. Docs / agent UX
 
@@ -434,17 +448,18 @@ Improve **without** violating §2 / §12. Highest-value directions:
 Makefile
 README.md
 instructions.md                 ← you are here
-docs/{overview,terraform,ansible,operations,nfs-storage,proxmox-template,zero-trust,TODO}.md
+docs/{overview,terraform,ansible,operations,nfs-storage,proxmox-template,rhel9-uf,rhel9-stig,zero-trust,TODO}.md
 terraform/{main,variables,outputs,providers,versions}.tf
 terraform/terraform.tfvars.example
+terraform/rhel9/   ← RHEL 9 UF + STIG inventory groups
 ansible/ansible.cfg
 ansible/requirements.yml
-ansible/inventory/group_vars/all/main.yml
-ansible/playbooks/{site,storage,verify,nfs_provisioner}.yml
-ansible/roles/{common,lab_routes,k3s,nfs_server,nfs_provisioner}/
+ansible/inventory/group_vars/{all,rhel9_stig,idm_clients,idm_servers}/
+ansible/playbooks/{site,storage,verify,nfs_provisioner,splunk_uf,rhel9_stig_* ,idm_*}.yml
+ansible/roles/{common,lab_routes,k3s,nfs_server,nfs_provisioner,splunk_uf,rhel9_stig,rhel9_stig_audit,idm_client,idm_manage}/
 manifests/storage/{README.md,pvc-smoke.yaml}
 manifests/splunk/
-scripts/{rebuild,destroy,create-ubuntu-template}.sh
+scripts/{rebuild,destroy,create-ubuntu-template,create-rhel9-template}.sh
 ```
 
 ---

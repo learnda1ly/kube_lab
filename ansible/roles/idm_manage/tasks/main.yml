@@ -1,0 +1,67 @@
+---
+- name: Skip when IdM manage role disabled
+  ansible.builtin.meta: end_host
+  when: not idm_manage_enabled | bool
+
+- name: Assert IdM admin password is provided
+  ansible.builtin.assert:
+    that:
+      - ipaadmin_password | length > 0
+    fail_msg: "Set ipaadmin_password via vault or EXTRA=-e before running idm_manage."
+
+- name: Ensure IdM users are present
+  freeipa.ansible_freeipa.ipauser:
+    ipaadmin_principal: "{{ ipaadmin_principal }}"
+    ipaadmin_password: "{{ ipaadmin_password }}"
+    name: "{{ item.name }}"
+    first: "{{ item.first | default(omit) }}"
+    last: "{{ item.last | default(omit) }}"
+    password: "{{ item.password | default(omit) }}"
+    random: "{{ item.random | default(omit) }}"
+    email: "{{ item.email | default(omit) }}"
+    state: "{{ item.state | default('present') }}"
+    update_password: "{{ item.update_password | default('on_create') }}"
+  loop: "{{ idm_users }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: idm_users | length > 0
+
+- name: Ensure IdM groups are present
+  freeipa.ansible_freeipa.ipagroup:
+    ipaadmin_principal: "{{ ipaadmin_principal }}"
+    ipaadmin_password: "{{ ipaadmin_password }}"
+    name: "{{ item.name }}"
+    description: "{{ item.description | default(omit) }}"
+    user: "{{ item.user | default(omit) }}"
+    state: "{{ item.state | default('present') }}"
+  loop: "{{ idm_groups }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: idm_groups | length > 0
+
+- name: Ensure IdM HBAC rules are present
+  freeipa.ansible_freeipa.ipahbacrule:
+    ipaadmin_principal: "{{ ipaadmin_principal }}"
+    ipaadmin_password: "{{ ipaadmin_password }}"
+    name: "{{ item.name }}"
+    user: "{{ item.user | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
+    host: "{{ item.host | default(omit) }}"
+    hostgroup: "{{ item.hostgroup | default(omit) }}"
+    hbacsvc: "{{ item.hbacsvc | default(omit) }}"
+    hbacsvcgroup: "{{ item.hbacsvcgroup | default(omit) }}"
+    hostcategory: "{{ item.hostcategory | default(omit) }}"
+    servicecategory: "{{ item.servicecategory | default(omit) }}"
+    state: "{{ item.state | default('present') }}"
+  loop: "{{ idm_hbac_rules }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: idm_hbac_rules | length > 0
+
+- name: Disable default allow_all HBAC rule (optional least privilege)
+  freeipa.ansible_freeipa.ipahbacrule:
+    ipaadmin_principal: "{{ ipaadmin_principal }}"
+    ipaadmin_password: "{{ ipaadmin_password }}"
+    name: allow_all
+    state: disabled
+  when: idm_disable_allow_all_hbac | bool

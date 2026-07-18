@@ -1,0 +1,39 @@
+---
+# Enroll RHEL hosts into Red Hat Identity Management (IdM / FreeIPA).
+# Users are managed in IdM — not via local ansible.builtin.user on members.
+
+# Default false so `make rhel9-stig` works before IdM exists; enable in group_vars.
+idm_client_enabled: false
+
+# IdM realm / domain (typically EXAMPLE.COM / example.com)
+idm_domain: "idm.example.com"
+idm_realm: "IDM.EXAMPLE.COM"
+
+# One or more IdM servers (FQDN). First entry is primary for enrollment.
+idm_servers:
+  - "ipa0.idm.example.com"
+
+# Enrollment principal. Prefer one-time password (OTP) in vault over admin password.
+idm_client_principal: admin
+# Set via vault / -e / env; do not commit real values.
+idm_client_password: ""
+idm_client_otp: ""
+
+# Client hostname must be an FQDN resolvable in IdM DNS (or use --force when lab DNS is thin).
+idm_client_force_join: false
+idm_client_mkhomedir: true
+idm_client_ssh: true
+idm_client_fixed_primary: true
+idm_client_configure_firefox: false
+
+# Packages required on the member before enrollment.
+idm_client_packages:
+  - ipa-client
+  - oddjob
+  - oddjob-mkhomedir
+  - sssd
+  - adcli
+  - realmd
+
+# Skip enrollment when already a client (idempotent).
+idm_client_skip_if_enrolled: true

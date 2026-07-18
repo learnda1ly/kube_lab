@@ -1,0 +1,12 @@
+[Unit]
+Description=Nightly OpenSCAP DISA STIG audit for RHEL 9
+Documentation=file://{{ rhel9_stig_results_dir }}
+
+[Timer]
+OnCalendar={{ rhel9_stig_audit_timer_on_calendar }}
+RandomizedDelaySec={{ rhel9_stig_audit_timer_randomized_delay_sec }}
+Persistent=true
+Unit=rhel9-stig-audit.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,12 @@
+---
+# Full PoC path: IdM client (optional) → STIG harden → compliance audit/timer.
+# Does not touch k3s inventory. Targets groups emitted by terraform/rhel9.
+
+- name: Import IdM client enrollment
+  ansible.builtin.import_playbook: idm_client.yml
+
+- name: Import STIG hardening
+  ansible.builtin.import_playbook: rhel9_stig_harden.yml
+
+- name: Import STIG audit / maintenance
+  ansible.builtin.import_playbook: rhel9_stig_audit.yml

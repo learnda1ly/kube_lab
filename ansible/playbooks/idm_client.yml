@@ -1,0 +1,9 @@
+---
+# Enroll RHEL hosts into Red Hat IdM. Users are not created locally.
+
+- name: IdM client enrollment
+  hosts: idm_clients
+  become: true
+  gather_facts: true
+  roles:
+    - role: idm_client

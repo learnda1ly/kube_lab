@@ -1,0 +1,17 @@
+[Unit]
+Description=OpenSCAP DISA STIG audit for RHEL 9
+Documentation=file://{{ rhel9_stig_results_dir }}
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+ExecStart=/usr/bin/oscap xccdf eval --profile {{ rhel9_stig_profile }} --results {{ rhel9_stig_audit_results_xml }} --report {{ rhel9_stig_audit_results_html }} {{ rhel9_stig_datastream }}
+# OpenSCAP returns 2 when rules fail; still treat the unit as successful for timer continuity.
+SuccessExitStatus=0 2
+
+[Install]
+WantedBy=multi-user.target
