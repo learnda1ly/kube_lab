@@ -1,0 +1,27 @@
+---
+# Continuous compliance: scan, report, optionally re-remediate drift.
+
+rhel9_stig_audit_enabled: true
+
+rhel9_stig_profile: xccdf_org.ssgproject.content_profile_stig
+rhel9_stig_datastream: /usr/share/xml/scap/ssg/content/ssg-rhel9-ds.xml
+rhel9_stig_oscap_skip_rules: []
+
+rhel9_stig_results_dir: /var/log/compliance
+rhel9_stig_audit_results_xml: "{{ rhel9_stig_results_dir }}/stig-audit-results.xml"
+rhel9_stig_audit_results_html: "{{ rhel9_stig_results_dir }}/stig-audit-report.html"
+
+# When true, run oscap --remediate during audit (drift repair).
+rhel9_stig_remediate_on_audit: false
+
+# Install a systemd timer for unattended scans (maintenance).
+rhel9_stig_audit_timer_enabled: true
+rhel9_stig_audit_timer_on_calendar: "*-*-* 02:30:00"
+rhel9_stig_audit_timer_randomized_delay_sec: 1800
+
+# Fetch HTML/XML reports to the Ansible controller.
+rhel9_stig_fetch_reports: true
+rhel9_stig_fetch_dir: "{{ playbook_dir }}/../../compliance-reports"
+
+# Treat non-zero oscap rc as soft failure (scan completed with findings).
+rhel9_stig_audit_fail_on_findings: false

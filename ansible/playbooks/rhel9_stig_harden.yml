@@ -1,0 +1,9 @@
+---
+# Apply DISA STIG remediation to RHEL 9 members (OpenSCAP / SSG).
+
+- name: STIG harden RHEL 9
+  hosts: rhel9_stig
+  become: true
+  gather_facts: true
+  roles:
+    - role: rhel9_stig

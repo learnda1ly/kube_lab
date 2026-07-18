@@ -1,0 +1,71 @@
+---
+- name: Skip when IdM client enrollment disabled
+  ansible.builtin.meta: end_host
+  when: not idm_client_enabled | bool
+
+- name: Assert IdM connection parameters
+  ansible.builtin.assert:
+    that:
+      - idm_domain | length > 0
+      - idm_realm | length > 0
+      - idm_servers | length > 0
+      - (idm_client_password | length > 0) or (idm_client_otp | length > 0)
+    fail_msg: >-
+      Set idm_domain, idm_realm, idm_servers, and either idm_client_password
+      or idm_client_otp (prefer vault / EXTRA=-e) before enrollment.
+
+- name: Install IdM client packages
+  ansible.builtin.dnf:
+    name: "{{ idm_client_packages }}"
+    state: present
+
+- name: Check whether host is already enrolled in IdM
+  ansible.builtin.stat:
+    path: /etc/ipa/default.conf
+  register: idm_client_ipa_conf
+
+- name: Report already enrolled
+  ansible.builtin.debug:
+    msg: "{{ inventory_hostname }} already enrolled ({{ idm_client_ipa_conf.stat.path }})."
+  when:
+    - idm_client_skip_if_enrolled | bool
+    - idm_client_ipa_conf.stat.exists
+
+- name: End host when already enrolled
+  ansible.builtin.meta: end_host
+  when:
+    - idm_client_skip_if_enrolled | bool
+    - idm_client_ipa_conf.stat.exists
+
+- name: Build ipa-client-install argv (shared flags)
+  ansible.builtin.set_fact:
+    idm_client_base_argv: "{{ ['ipa-client-install', '--unattended', '--domain=' ~ idm_domain, '--realm=' ~ idm_realm, '--server=' ~ (idm_servers | join(','))] + (['--mkhomedir'] if idm_client_mkhomedir | bool else []) + (['--force-join'] if idm_client_force_join | bool else []) + (['--no-sshd'] if not idm_client_ssh | bool else []) }}"
+
+- name: Enroll host into IdM with one-time password
+  ansible.builtin.command:
+    argv: "{{ idm_client_base_argv + ['--password=' ~ idm_client_otp] }}"
+  register: idm_client_install_otp
+  changed_when: idm_client_install_otp.rc == 0
+  no_log: true
+  when: idm_client_otp | length > 0
+
+- name: Enroll host into IdM with admin principal
+  ansible.builtin.command:
+    argv: "{{ idm_client_base_argv + ['--principal=' ~ idm_client_principal, '--password=' ~ idm_client_password] }}"
+  register: idm_client_install_admin
+  changed_when: idm_client_install_admin.rc == 0
+  no_log: true
+  when: idm_client_otp | length == 0
+
+- name: Ensure SSSD is enabled and running
+  ansible.builtin.service:
+    name: sssd
+    state: started
+    enabled: true
+
+- name: Ensure oddjobd is enabled when mkhomedir is requested
+  ansible.builtin.service:
+    name: oddjobd
+    state: started
+    enabled: true
+  when: idm_client_mkhomedir | bool

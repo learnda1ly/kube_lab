@@ -1,0 +1,106 @@
+---
+- name: Skip when audit role disabled
+  ansible.builtin.meta: end_host
+  when: not rhel9_stig_audit_enabled | bool
+
+- name: Ensure OpenSCAP scanner and SSG content are installed
+  ansible.builtin.dnf:
+    name:
+      - openscap-scanner
+      - scap-security-guide
+    state: present
+
+- name: Ensure compliance results directory exists
+  ansible.builtin.file:
+    path: "{{ rhel9_stig_results_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Build oscap skip-rule arguments
+  ansible.builtin.set_fact:
+    rhel9_stig_audit_skip_args: >-
+      {{
+        rhel9_stig_oscap_skip_rules
+        | map('regex_replace', '^(.*)$', '--skip-rule \1')
+        | list
+        | join(' ')
+      }}
+
+- name: Run OpenSCAP STIG evaluation
+  ansible.builtin.command: >-
+    oscap xccdf eval
+    --profile {{ rhel9_stig_profile }}
+    {{ rhel9_stig_audit_skip_args }}
+    {% if rhel9_stig_remediate_on_audit | bool %}--remediate{% endif %}
+    --results {{ rhel9_stig_audit_results_xml }}
+    --report {{ rhel9_stig_audit_results_html }}
+    {{ rhel9_stig_datastream }}
+  register: rhel9_stig_audit_run
+  changed_when: rhel9_stig_remediate_on_audit | bool
+  failed_when: >-
+    rhel9_stig_audit_run.rc not in [0, 2]
+    or (rhel9_stig_audit_fail_on_findings | bool and rhel9_stig_audit_run.rc != 0)
+
+- name: Report OpenSCAP exit status
+  ansible.builtin.debug:
+    msg: >-
+      OpenSCAP STIG scan finished on {{ inventory_hostname }}
+      (rc={{ rhel9_stig_audit_run.rc }}; 0=pass, 2=findings).
+      Report: {{ rhel9_stig_audit_results_html }}
+
+- name: Install systemd unit for scheduled STIG scans
+  ansible.builtin.template:
+    src: stig-audit.service.j2
+    dest: /etc/systemd/system/rhel9-stig-audit.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+  when: rhel9_stig_audit_timer_enabled | bool
+
+- name: Install systemd timer for scheduled STIG scans
+  ansible.builtin.template:
+    src: stig-audit.timer.j2
+    dest: /etc/systemd/system/rhel9-stig-audit.timer
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+  when: rhel9_stig_audit_timer_enabled | bool
+
+- name: Flush handlers so timer units are known to systemd
+  ansible.builtin.meta: flush_handlers
+  when: rhel9_stig_audit_timer_enabled | bool
+
+- name: Enable and start STIG audit timer
+  ansible.builtin.systemd:
+    name: rhel9-stig-audit.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+  when: rhel9_stig_audit_timer_enabled | bool
+
+- name: Ensure local fetch directory exists on controller
+  ansible.builtin.file:
+    path: "{{ rhel9_stig_fetch_dir }}/{{ inventory_hostname }}"
+    state: directory
+    mode: "0750"
+  delegate_to: localhost
+  become: false
+  when: rhel9_stig_fetch_reports | bool
+
+- name: Fetch STIG audit HTML report to controller
+  ansible.builtin.fetch:
+    src: "{{ rhel9_stig_audit_results_html }}"
+    dest: "{{ rhel9_stig_fetch_dir }}/{{ inventory_hostname }}/"
+    flat: true
+  when: rhel9_stig_fetch_reports | bool
+
+- name: Fetch STIG audit XML results to controller
+  ansible.builtin.fetch:
+    src: "{{ rhel9_stig_audit_results_xml }}"
+    dest: "{{ rhel9_stig_fetch_dir }}/{{ inventory_hostname }}/"
+    flat: true
+  when: rhel9_stig_fetch_reports | bool

@@ -1,0 +1,55 @@
+---
+# Example inventory when not using terraform/rhel9 generated hosts.rhel9.yml.
+# Copy/adapt, or rely on `make rhel9-apply` which emits rhel9_stig + idm_clients.
+
+all:
+  children:
+    rhel9_uf:
+      hosts:
+        rhel9-uf-01:
+          ansible_host: 192.168.1.40
+          ansible_user: cloud-user
+        rhel9-uf-02:
+          ansible_host: 192.168.1.41
+          ansible_user: cloud-user
+        rhel9-uf-03:
+          ansible_host: 192.168.1.42
+          ansible_user: cloud-user
+      vars:
+        ansible_become: true
+
+    # Same members for STIG harden/audit PoC
+    rhel9_stig:
+      hosts:
+        rhel9-uf-01:
+          ansible_host: 192.168.1.40
+          ansible_user: cloud-user
+        rhel9-uf-02:
+          ansible_host: 192.168.1.41
+          ansible_user: cloud-user
+        rhel9-uf-03:
+          ansible_host: 192.168.1.42
+          ansible_user: cloud-user
+      vars:
+        ansible_become: true
+
+    idm_clients:
+      hosts:
+        rhel9-uf-01:
+          ansible_host: 192.168.1.40
+          ansible_user: cloud-user
+        rhel9-uf-02:
+          ansible_host: 192.168.1.41
+          ansible_user: cloud-user
+        rhel9-uf-03:
+          ansible_host: 192.168.1.42
+          ansible_user: cloud-user
+      vars:
+        ansible_become: true
+
+    # Optional: add when you have an IdM server to manage via Ansible
+    idm_servers:
+      hosts: {}
+      # ipa0.idm.example.com:
+      #   ansible_host: 192.168.1.50
+      #   ansible_user: cloud-user

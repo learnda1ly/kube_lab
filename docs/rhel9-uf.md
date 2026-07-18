@@ -3,7 +3,9 @@
 Three RHEL 9 VMs on Proxmox for Ansible-driven UF install/upgrade testing.
 **Fully separate from the k3s cluster** — own Terraform root, state, inventory, and playbooks.
 
-Related: [terraform.md](terraform.md) (k3s) · [ansible.md](ansible.md) (k3s) · [operations.md](operations.md)
+The same VMs are also inventory members of `rhel9_stig` / `idm_clients` for the STIG + IdM PoC — see [rhel9-stig.md](rhel9-stig.md).
+
+Related: [terraform.md](terraform.md) (k3s) · [ansible.md](ansible.md) (k3s) · [operations.md](operations.md) · [rhel9-stig.md](rhel9-stig.md)
 
 ## Why separate
 

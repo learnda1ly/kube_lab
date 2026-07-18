@@ -1,0 +1,9 @@
+---
+# Scan (and optionally re-remediate) RHEL 9 STIG compliance; fetch reports.
+
+- name: STIG audit / maintain RHEL 9
+  hosts: rhel9_stig
+  become: true
+  gather_facts: true
+  roles:
+    - role: rhel9_stig_audit

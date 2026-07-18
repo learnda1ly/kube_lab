@@ -1,0 +1,36 @@
+---
+# Desired-state identity objects on Red Hat IdM (ansible-freeipa).
+# Playbook: playbooks/idm_manage.yml — requires hosts in group idm_servers.
+
+idm_manage_enabled: true
+ipaadmin_principal: admin
+# ansible-vault encrypt_string '...' --name ipaadmin_password
+ipaadmin_password: ""
+
+# Example declarative users/groups/HBAC — replace for your org.
+# Set a vaulted password (or random: true) before enabling create-on-apply.
+idm_users:
+  - name: stigop
+    first: STIG
+    last: Operator
+    random: true
+    state: present
+
+idm_groups:
+  - name: stig-admins
+    description: Operators for STIG-hardened RHEL lab
+    user:
+      - stigop
+    state: present
+
+idm_hbac_rules:
+  - name: allow_ssh_stig_admins
+    group:
+      - stig-admins
+    hostcategory: all
+    hbacsvc:
+      - sshd
+    state: present
+
+# Lab default keeps allow_all until you validate HBAC; set true for least privilege.
+idm_disable_allow_all_hbac: false

@@ -1,0 +1,18 @@
+---
+# IdM client enrollment for RHEL members.
+# Enable after IdM is reachable; pass password/OTP via vault or EXTRA=-e.
+
+idm_client_enabled: false
+
+idm_domain: "idm.example.com"
+idm_realm: "IDM.EXAMPLE.COM"
+idm_servers:
+  - "ipa0.idm.example.com"
+
+idm_client_principal: admin
+# Prefer: ansible-vault encrypt_string '...' --name idm_client_password
+idm_client_password: ""
+idm_client_otp: ""
+
+idm_client_mkhomedir: true
+idm_client_force_join: false

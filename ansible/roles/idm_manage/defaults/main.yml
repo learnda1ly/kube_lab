@@ -1,0 +1,37 @@
+---
+# Manage IdM users / groups / HBAC from Ansible (ansible-freeipa modules).
+# Runs against IdM servers (inventory group idm_servers), not against clients.
+
+idm_manage_enabled: true
+
+# Prefer Ansible Vault for this password.
+ipaadmin_principal: admin
+ipaadmin_password: ""
+
+# Declarative inventory of desired state. Override in group_vars/idm_servers.
+idm_users: []
+# Example element:
+# - name: jdoe
+#   first: Jane
+#   last: Doe
+#   password: "{{ vault_jdoe_password }}"
+#   state: present
+
+idm_groups: []
+# - name: stig-admins
+#   description: Privileged operators for STIG lab
+#   user:
+#     - jdoe
+#   state: present
+
+idm_hbac_rules: []
+# - name: allow_ssh_stig_admins
+#   group:
+#     - stig-admins
+#   hostcategory: all
+#   hbacsvc:
+#     - sshd
+#   state: present
+
+# When true, ensure the allow_all HBAC rule is disabled (least privilege lab default).
+idm_disable_allow_all_hbac: false

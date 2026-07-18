@@ -1,0 +1,6 @@
+---
+- name: Reboot for FIPS
+  ansible.builtin.reboot:
+    msg: Rebooting after enabling FIPS mode for STIG alignment
+    reboot_timeout: 600
+  when: rhel9_stig_reboot_on_fips | bool

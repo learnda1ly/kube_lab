@@ -1,0 +1,12 @@
+---
+# Ensure IdM users, groups, and HBAC rules (runs on IdM servers).
+# Requires inventory group idm_servers and ipaadmin_password (vault).
+
+- name: Manage IdM identities and HBAC
+  hosts: idm_servers
+  become: true
+  gather_facts: true
+  collections:
+    - freeipa.ansible_freeipa
+  roles:
+    - role: idm_manage

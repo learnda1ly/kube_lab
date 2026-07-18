@@ -195,6 +195,24 @@ Thin wrapper: `import_playbook: nfs_provisioner.yml` (same play as the end of `s
 make storage
 ```
 
+### RHEL 9 STIG + IdM PoC (separate inventory)
+
+Uses `hosts.rhel9.yml` (from `terraform/rhel9`), not the k3s inventory. See [rhel9-stig.md](rhel9-stig.md).
+
+| Playbook | Hosts | Purpose |
+|----------|-------|---------|
+| `rhel9_stig_site.yml` | imports below | IdM client → STIG harden → audit |
+| `rhel9_stig_harden.yml` | `rhel9_stig` | OpenSCAP STIG remediation |
+| `rhel9_stig_audit.yml` | `rhel9_stig` | Scan, systemd timer, fetch reports |
+| `idm_client.yml` | `idm_clients` | Enroll into Red Hat IdM |
+| `idm_manage.yml` | `idm_servers` | Users/groups/HBAC via ansible-freeipa |
+| `splunk_uf.yml` | `rhel9_uf` | Splunk UF (unchanged) |
+
+```bash
+make rhel9-stig
+make rhel9-stig-audit EXTRA='-e rhel9_stig_remediate_on_audit=true'
+```
+
 ### `verify.yml` — readiness
 
 Runs on `control_plane` (`gather_facts: false`):

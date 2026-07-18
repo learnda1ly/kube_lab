@@ -1,5 +1,6 @@
 .PHONY: help init plan apply ansible storage verify rebuild destroy \
-	rhel9-init rhel9-plan rhel9-apply rhel9-ansible rhel9-destroy
+	rhel9-init rhel9-plan rhel9-apply rhel9-ansible rhel9-destroy \
+	rhel9-stig rhel9-stig-harden rhel9-stig-audit rhel9-idm-client rhel9-idm-manage
 
 ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 TF := terraform -chdir=$(ROOT)/terraform
@@ -34,7 +35,14 @@ help:
 	@echo "  make rhel9-apply    - apply RHEL 9 VMs + write hosts.rhel9.yml"
 	@echo "  make rhel9-ansible  - install/upgrade Splunk UF on rhel9_uf group"
 	@echo "  make rhel9-destroy  - destroy RHEL 9 VMs only (k3s untouched)"
-	@echo "  EXTRA='...'         - extra ansible-playbook args for rhel9-ansible"
+	@echo "  EXTRA='...'         - extra ansible-playbook args for rhel9-* ansible targets"
+	@echo ""
+	@echo "Targets (RHEL 9 STIG + IdM PoC — same hosts.rhel9.yml):"
+	@echo "  make rhel9-stig         - IdM client (if enabled) + STIG harden + audit"
+	@echo "  make rhel9-stig-harden  - OpenSCAP STIG remediation only"
+	@echo "  make rhel9-stig-audit   - compliance scan/timer; EXTRA can re-remediate"
+	@echo "  make rhel9-idm-client   - enroll idm_clients into Red Hat IdM"
+	@echo "  make rhel9-idm-manage   - ensure IdM users/groups/HBAC on idm_servers"
 
 init:
 	$(call with_env,$(TF) init -upgrade)
@@ -72,6 +80,21 @@ rhel9-apply:
 
 rhel9-ansible:
 	$(call with_env,$(ANSIBLE_RHEL9) $(ROOT)/ansible/playbooks/splunk_uf.yml $(EXTRA))
+
+rhel9-stig:
+	$(call with_env,$(ANSIBLE_RHEL9) $(ROOT)/ansible/playbooks/rhel9_stig_site.yml $(EXTRA))
+
+rhel9-stig-harden:
+	$(call with_env,$(ANSIBLE_RHEL9) $(ROOT)/ansible/playbooks/rhel9_stig_harden.yml $(EXTRA))
+
+rhel9-stig-audit:
+	$(call with_env,$(ANSIBLE_RHEL9) $(ROOT)/ansible/playbooks/rhel9_stig_audit.yml $(EXTRA))
+
+rhel9-idm-client:
+	$(call with_env,$(ANSIBLE_RHEL9) $(ROOT)/ansible/playbooks/idm_client.yml $(EXTRA))
+
+rhel9-idm-manage:
+	$(call with_env,$(ANSIBLE_RHEL9) $(ROOT)/ansible/playbooks/idm_manage.yml $(EXTRA))
 
 rhel9-destroy:
 	$(call with_env,$(TF_RHEL9) destroy)

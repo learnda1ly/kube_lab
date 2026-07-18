@@ -28,6 +28,7 @@ Agent / successor brief (every requirement addressed + quality bar): **[instruct
 | `docs/nfs-storage.md` | NFS VM + dynamic PVCs for Splunk/apps |
 | `docs/lab-network.md` | Proxmox `vmbr1` NAT lab net (non-k3s / NFS) |
 | `docs/rhel9-uf.md` | Separate RHEL 9 VMs for Splunk UF install/upgrade tests |
+| `docs/rhel9-stig.md` | STIG research + IdM IaC PoC (harden + maintain compliance) |
 | `docs/zero-trust.md` | DoD Zero Trust pillar recommendations for this lab |
 | `docs/TODO.md` | Known overcomplications / cleanup list |
 | `terraform/rhel9/` | Independent Terraform root: 3× RHEL 9 UF test VMs (not k3s) |
@@ -102,6 +103,17 @@ make rhel9-init
 make rhel9-apply
 make rhel9-ansible
 make rhel9-destroy   # k3s untouched
+```
+
+### RHEL 9 STIG + IdM PoC (same VMs / inventory)
+
+See **[docs/rhel9-stig.md](docs/rhel9-stig.md)**. Inventory groups `rhel9_stig` and `idm_clients` are emitted by `terraform/rhel9` alongside `rhel9_uf`.
+
+```bash
+make init                 # installs freeipa.ansible_freeipa collection
+make rhel9-stig           # IdM client (if enabled) + STIG remediate + audit timer
+make rhel9-stig-audit     # day-2 compliance scan / optional drift repair
+# make rhel9-idm-manage   # when idm_servers inventory + vault password exist
 ```
 
 ## Cluster shape (defaults)

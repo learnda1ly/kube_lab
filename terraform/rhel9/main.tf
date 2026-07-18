@@ -82,18 +82,35 @@ resource "proxmox_virtual_environment_vm" "rhel9" {
 }
 
 # Separate inventory — never mixed with ansible/inventory/hosts.proxmox.yml (k3s).
+# rhel9_stig + idm_clients alias the same VMs for the STIG/IdM PoC path.
+locals {
+  rhel9_host_map = {
+    for h in var.hosts : h.name => {
+      ansible_host = h.ip
+      ansible_user = var.ssh_user
+    }
+  }
+}
+
 resource "local_file" "ansible_inventory" {
   filename = "${path.module}/../../ansible/inventory/hosts.rhel9.yml"
   content = yamlencode({
     all = {
       children = {
         rhel9_uf = {
-          hosts = {
-            for h in var.hosts : h.name => {
-              ansible_host = h.ip
-              ansible_user = var.ssh_user
-            }
+          hosts = local.rhel9_host_map
+          vars = {
+            ansible_become = true
           }
+        }
+        rhel9_stig = {
+          hosts = local.rhel9_host_map
+          vars = {
+            ansible_become = true
+          }
+        }
+        idm_clients = {
+          hosts = local.rhel9_host_map
           vars = {
             ansible_become = true
           }

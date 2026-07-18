@@ -45,6 +45,8 @@ id_rsa*
 # Ansible
 ansible/*.retry
 .ansible/
+# OpenSCAP reports fetched by rhel9_stig_audit
+compliance-reports/
 
 # OS / editor
 .DS_Store
